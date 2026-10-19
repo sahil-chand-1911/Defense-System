@@ -2,3 +2,4 @@
 *.db
 __pycache__/
 attack_log.json
+guardian_log.json

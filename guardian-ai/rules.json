@@ -1,0 +1,30 @@
+[
+  {
+    "id": "rule_sqli_or_1_equals_1",
+    "name": "Classic OR '1'='1 Injection",
+    "pattern": "'\\s*OR\\s*'1'\\s*=\\s*'1",
+    "type": "regex",
+    "description": "Matches exact ' OR '1'='1 tautology pattern"
+  },
+  {
+    "id": "rule_sqli_union_select",
+    "name": "UNION SELECT Statement",
+    "pattern": "UNION\\s+SELECT",
+    "type": "regex",
+    "description": "Matches SQL UNION SELECT data extraction statements"
+  },
+  {
+    "id": "rule_sqli_semicolon_comment",
+    "name": "Semicolon Comment Sequence",
+    "pattern": ";--",
+    "type": "regex",
+    "description": "Matches query termination with comment delimiter ;--"
+  },
+  {
+    "id": "rule_sqli_drop_table",
+    "name": "DROP TABLE Statement",
+    "pattern": "DROP\\s+TABLE",
+    "type": "regex",
+    "description": "Matches destructive DROP TABLE SQL commands"
+  }
+]

