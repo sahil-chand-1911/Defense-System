@@ -93,12 +93,9 @@ Defense-System/
 Create a `.env` file in the project root:
 
 ```bash
-# LLM Providers (keep secrets secure and never commit .env to git)
+# Anthropic Claude API (Used across Red AI, Guardian AI, and Forge AI)
 ANTHROPIC_API_KEY="your-anthropic-api-key"
 ANTHROPIC_WORKSPACE_ID="wrkspc_your_workspace_id"   # Required if using an unscoped user key
-
-# Optional: Nebius API key for Red AI payload generation (falls back to built-in vectors if unset)
-NEBIUS_API_KEY="your-nebius-api-key"
 ```
 
 ### 3. Dependency Installation

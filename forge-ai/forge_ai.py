@@ -215,10 +215,11 @@ Example structure:
 
 Begin."""
 
-    # Model preference — try the newest available
+    # Model preference — try currently supported active models
     models = [
-        "claude-sonnet-4-20250514",
-        "claude-3-5-sonnet-20241022",
+        os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+        "claude-sonnet-4-6",
+        "claude-haiku-4-5",
     ]
 
     last_error = None
