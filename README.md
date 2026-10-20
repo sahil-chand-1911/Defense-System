@@ -33,7 +33,7 @@ The core architecture operates as an autonomous, self-healing lifecycle:
 
 | Agent | Role | Description |
 |---|---|---|
-| **Red AI** | Attacker | Autonomous adversarial agent powered by LLMs (or fallback vectors) that generates exploit payloads targeting SQL Injection, XSS, and Path Traversal. |
+| **Red AI** | Attacker | Autonomous adversarial agent powered by Claude (default: `claude-sonnet-4-6`, with built-in fallback) that generates varied exploit payloads targeting SQL Injection, XSS, and Path Traversal. |
 | **Guardian AI** | Defensive Proxy / WAF | High-performance reverse proxy sitting on port `8080`. Inspects all incoming traffic against dynamic rules (`rules.json`) and includes an AI learning pipeline (`learn_rule.py`) to synthesize new defense rules instantly. |
 | **Forge AI** | Code-Patching Agent | Secure code remediation engine. Isolates vulnerable functions in source code and leverages Claude to write drop-in, parameterized security fixes while preserving business logic and comments. |
 | **Sentinel AI** | Patch Tester & Validator | Automated quality & security gate. Runs a two-phase check on proposed patches: replays historical breach payloads to confirm mitigation, and runs the `pytest` regression suite to guarantee zero broken functionality. |
@@ -63,7 +63,7 @@ Defense-System/
 ├── red-ai/                   # Attacker agent
 │   ├── red_ai.py             # Payload generator and exploit execution engine
 │   ├── attack_log.json       # Structured log of all exploit attempts and breach statuses
-│   └── requirements.txt      # openai, requests, python-dotenv
+│   └── requirements.txt      # anthropic, requests, python-dotenv
 ├── guardian-ai/              # Defensive reverse proxy / WAF
 │   ├── guardian.py           # Proxy server running on port 8080 (forwards to 5001)
 │   ├── learn_rule.py         # AI-powered rule learning engine
@@ -143,6 +143,7 @@ In a third terminal, launch the exploit suite through Guardian AI:
 ```bash
 python3 red-ai/red_ai.py --vuln sql_injection --target http://127.0.0.1:8080
 ```
+- Red AI prints a visible banner stating whether it is using **Claude-generated payloads** (`claude-sonnet-4-6`) or the **built-in fallback** list.
 - Previously known signatures are blocked (`403 Forbidden`).
 - Any novel bypass vectors succeed and get logged into `red-ai/attack_log.json`.
 
