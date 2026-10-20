@@ -26,5 +26,12 @@
     "pattern": "DROP\\s+TABLE",
     "type": "regex",
     "description": "Matches destructive DROP TABLE SQL commands"
+  },
+  {
+    "id": "rule_sqli_empty_string_or_1792452977",
+    "name": "SQLi OR Empty String Comparison",
+    "pattern": "'\\s*OR\\s*''\\s*=\\s*'",
+    "type": "regex",
+    "description": "Blocks SQL injection ' OR ''=' tautology condition"
   }
 ]
