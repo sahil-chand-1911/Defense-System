@@ -2,7 +2,7 @@
 Guardian AI — Rule Learning Agent (Stage 3)
 
 Analyzes successful attack payloads from Red AI (or direct input),
-queries Claude to generate a targeted regex/keyword detection rule that
+queries Google Gemini to generate a targeted regex/keyword detection rule that
 blocks the attack without creating false positives on legitimate users,
 and appends the new rule to rules.json.
 """
@@ -115,21 +115,16 @@ def synthesize_rule_heuristics(payload: dict) -> dict:
         }
 
 
-def ask_claude_for_rule(payload: dict) -> dict:
-    """Call Claude to generate a high-quality WAF detection rule for the payload."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+def ask_gemini_for_rule(payload: dict) -> dict:
+    """Call Google Gemini to generate a high-quality WAF detection rule for the payload."""
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("[Learn Rule] No ANTHROPIC_API_KEY found in .env — using intelligent synthesizer.")
+        print("[Learn Rule] No GEMINI_API_KEY found in .env — using intelligent synthesizer.")
         return synthesize_rule_heuristics(payload)
 
-    import anthropic
+    import google.generativeai as genai
 
-    workspace_id = os.environ.get("ANTHROPIC_WORKSPACE_ID")
-    default_headers = {}
-    if workspace_id:
-        default_headers["anthropic-workspace-id"] = workspace_id
-
-    client = anthropic.Anthropic(api_key=api_key, default_headers=default_headers or None)
+    genai.configure(api_key=api_key)
 
     prompt = f"""You are Guardian AI, an expert defensive Web Application Firewall (WAF) rule engineer.
 An attacker bypassed our firewall using this SQL injection payload targeting a Flask SQLite login endpoint:
@@ -151,35 +146,36 @@ Respond ONLY with a valid JSON object in this exact schema (no markdown formatti
   "description": "<One sentence explaining what this blocks and how it avoids false positives>"
 }}"""
 
-    # Try currently supported active models
-    models_to_try = [
-        os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
-        "claude-sonnet-4-6",
-        "claude-haiku-4-5",
-    ]
+    # Try currently supported active models (fast model for rule generation)
+    models_to_try = []
+    for m in [os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"), "gemini-3.8-flash", "gemini-2.5-flash", "gemini-flash-latest"]:
+        if m and m not in models_to_try:
+            models_to_try.append(m)
 
     last_error = None
-    kwargs = {"model": "", "max_tokens": 600, "messages": [{"role": "user", "content": prompt}]}
-    if workspace_id:
-        kwargs["workspace_id"] = workspace_id
-
     for model_name in models_to_try:
         try:
-            print(f"[Learn Rule] Querying Claude ({model_name})...")
-            kwargs["model"] = model_name
-            response = client.messages.create(**kwargs)
-            raw_text = response.content[0].text.strip()
+            print(f"[Learn Rule] Querying Gemini ({model_name})...")
+            model_instance = genai.GenerativeModel(
+                model_name=model_name,
+                system_instruction="You are Guardian AI, an expert defensive Web Application Firewall (WAF) rule engineer.",
+            )
+            response = model_instance.generate_content(
+                prompt,
+                generation_config={"max_output_tokens": 1024, "temperature": 0.2},
+            )
+            raw_text = response.text.strip()
             # Clean markdown fences if any
             clean_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
             clean_text = re.sub(r"\s*```$", "", clean_text).strip()
             rule_data = json.loads(clean_text)
-            print("[Learn Rule] Successfully generated rule via Claude.")
+            print(f"[Learn Rule] Successfully generated rule via Gemini ({model_name}).")
             return rule_data
         except Exception as e:
             last_error = e
             continue
 
-    print(f"[Learn Rule] Notice: Claude API returned ({last_error}).")
+    print(f"[Learn Rule] Notice: Gemini API returned ({last_error}).")
     print("             Switching to intelligent rule synthesizer.")
     return synthesize_rule_heuristics(payload)
 
@@ -250,9 +246,9 @@ def main():
     payload = load_target_payload(args.payload, args.log)
     print(f"[1/3] Analyzing attack payload: {payload}")
 
-    # 2. Generate rule via Claude
+    # 2. Generate rule via Gemini
     print("\n[2/3] Generating defensive detection pattern...")
-    rule = ask_claude_for_rule(payload)
+    rule = ask_gemini_for_rule(payload)
     print(f"      Rule ID     : {rule.get('id')}")
     print(f"      Rule Name   : {rule.get('name')}")
     print(f"      Pattern     : {rule.get('pattern')}")

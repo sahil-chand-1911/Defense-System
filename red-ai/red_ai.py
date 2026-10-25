@@ -1,7 +1,7 @@
 """
 Red AI — Automated SQL Injection Attacker Agent (Stage 2)
 
-Uses the Anthropic Claude API to generate varied SQL injection payloads,
+Uses Google's Gemini API to generate varied SQL injection payloads,
 fires them at the Stage 1 target app's /login endpoint (directly or through
 the Guardian AI proxy), and logs every result to a local JSON file.
 
@@ -30,27 +30,20 @@ LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "attack_log.
 # Load .env from the project root (one level up from red-ai/)
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env"))
 
-# Supported active Claude models
-DEFAULT_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+# Supported active Gemini models (fast model for payload generation)
+DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 
 
 def get_llm_client():
-    """Initialise the Anthropic Claude client."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    """Initialise the Google Gemini API client."""
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         return None
 
-    import anthropic
+    import google.generativeai as genai
 
-    workspace_id = os.environ.get("ANTHROPIC_WORKSPACE_ID")
-    default_headers = {}
-    if workspace_id:
-        default_headers["anthropic-workspace-id"] = workspace_id
-
-    return anthropic.Anthropic(
-        api_key=api_key,
-        default_headers=default_headers or None,
-    )
+    genai.configure(api_key=api_key)
+    return genai
 
 
 # ---------------------------------------------------------------------------
@@ -87,7 +80,7 @@ Return ONLY a JSON array of these objects — no explanation, no markdown fences
 
 def generate_payloads(client, model: str) -> tuple[list[dict], str]:
     """
-    Ask Claude for SQL injection payloads and parse the JSON response.
+    Ask Gemini for SQL injection payloads and parse the JSON response.
     Returns (payloads, source_description).
     """
     fallback = [
@@ -102,29 +95,28 @@ def generate_payloads(client, model: str) -> tuple[list[dict], str]:
     ]
 
     if client is None:
-        print("[Red AI] ⚠️  WARNING: Using fallback payloads — Claude call failed or unauthenticated (ANTHROPIC_API_KEY missing)")
+        print("[Red AI] ⚠️  WARNING: Using fallback payloads — Gemini call failed or unauthenticated (GEMINI_API_KEY missing)")
         return fallback, "built-in fallback (unauthenticated)"
 
     # Candidate active models in order of priority
     candidate_models = [model]
-    if "claude-sonnet-4-6" not in candidate_models:
-        candidate_models.append("claude-sonnet-4-6")
-    if "claude-haiku-4-5" not in candidate_models:
-        candidate_models.append("claude-haiku-4-5")
+    for alt in ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-flash-latest"]:
+        if alt not in candidate_models:
+            candidate_models.append(alt)
 
     last_error = None
     for cand_model in candidate_models:
         try:
-            print(f"[Red AI] Requesting payloads from Claude ({cand_model})...")
-            response = client.messages.create(
-                model=cand_model,
-                max_tokens=1024,
-                system=SQLI_SYSTEM_PROMPT,
-                messages=[
-                    {"role": "user", "content": "Generate the payloads now."},
-                ],
+            print(f"[Red AI] Requesting payloads from Gemini ({cand_model})...")
+            model_instance = client.GenerativeModel(
+                model_name=cand_model,
+                system_instruction=SQLI_SYSTEM_PROMPT,
             )
-            raw = response.content[0].text.strip()
+            response = model_instance.generate_content(
+                "Generate the payloads now.",
+                generation_config={"max_output_tokens": 1024, "temperature": 0.7},
+            )
+            raw = response.text.strip()
 
             # Strip markdown fences if the model wraps the output
             raw = re.sub(r"^```(?:json)?\s*", "", raw)
@@ -134,8 +126,8 @@ def generate_payloads(client, model: str) -> tuple[list[dict], str]:
             if not isinstance(payloads, list):
                 payloads = [payloads]
 
-            print(f"[Red AI] ✅ Using Claude-generated payloads ({cand_model})")
-            return payloads, f"Claude ({cand_model})"
+            print(f"[Red AI] ✅ Using Gemini-generated payloads ({cand_model})")
+            return payloads, f"Gemini ({cand_model})"
 
         except json.JSONDecodeError as e:
             last_error = f"Non-JSON response from {cand_model}: {e}"
@@ -144,7 +136,7 @@ def generate_payloads(client, model: str) -> tuple[list[dict], str]:
             last_error = f"{cand_model} failed: {e}"
             continue
 
-    print(f"[Red AI] ⚠️  WARNING: Using fallback payloads — Claude call failed or unauthenticated ({last_error})")
+    print(f"[Red AI] ⚠️  WARNING: Using fallback payloads — Gemini call failed or unauthenticated ({last_error})")
     return fallback, f"built-in fallback (error: {last_error})"
 
 
@@ -215,7 +207,7 @@ def main():
     parser.add_argument(
         "--model",
         default=DEFAULT_MODEL,
-        help=f"Claude model ID to use for payload generation (default: {DEFAULT_MODEL})",
+        help=f"Gemini model ID to use for payload generation (default: {DEFAULT_MODEL})",
     )
     args = parser.parse_args()
 

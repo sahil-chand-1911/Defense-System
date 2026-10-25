@@ -2,10 +2,10 @@
 Forge AI — Automated Code-Patching Agent (Stage 4)
 
 Reads the vulnerable target-app/app.py, identifies exploited vulnerabilities
-from Red AI's attack_log.json, calls Claude to generate a secure rewrite of
+from Red AI's attack_log.json, calls Google Gemini to generate a secure rewrite of
 the affected function(s), and writes the proposed patch to app_patched.py.
 
-SAFETY: If the Claude API call fails, the script reports the failure loudly
+SAFETY: If the Gemini API call fails, the script reports the failure loudly
 and exits. It does NOT fall back to a hardcoded patch — real failures must
 be visible, never hidden.
 """
@@ -122,31 +122,24 @@ def extract_vulnerable_function(source: str, vuln_type: str) -> tuple[str, int, 
 
 
 # ---------------------------------------------------------------------------
-# Claude API — patch generation (NO FALLBACK)
+# Gemini API — patch generation (NO FALLBACK)
 # ---------------------------------------------------------------------------
-def get_claude_client():
-    """Initialise the Anthropic client. Fails loudly if key is missing."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+def get_gemini_client():
+    """Initialise the Google Gemini client. Fails loudly if key is missing."""
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         print("=" * 60)
-        print("  FATAL: ANTHROPIC_API_KEY not set in .env")
+        print("  FATAL: GEMINI_API_KEY not set in .env")
         print("=" * 60)
-        print("  Forge AI requires a working Claude API key.")
-        print("  Add ANTHROPIC_API_KEY to your .env file and try again.")
+        print("  Forge AI requires a working Gemini API key.")
+        print("  Add GEMINI_API_KEY to your .env file and try again.")
         print("=" * 60)
         sys.exit(1)
 
-    import anthropic
+    import google.generativeai as genai
 
-    workspace_id = os.environ.get("ANTHROPIC_WORKSPACE_ID")
-    default_headers = {}
-    if workspace_id:
-        default_headers["anthropic-workspace-id"] = workspace_id
-
-    return anthropic.Anthropic(
-        api_key=api_key,
-        default_headers=default_headers or None,
-    )
+    genai.configure(api_key=api_key)
+    return genai
 
 
 def generate_patch(
@@ -157,7 +150,7 @@ def generate_patch(
     attack_samples: list[dict],
 ) -> tuple[str, str]:
     """
-    Call Claude to generate a patched version of the full app source.
+    Call Gemini to generate a patched version of the full app source.
 
     Returns (patched_full_source, explanation).
 
@@ -215,23 +208,22 @@ Example structure:
 
 Begin."""
 
-    # Model preference — try currently supported active models
-    models = [
-        os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
-        "claude-sonnet-4-6",
-        "claude-haiku-4-5",
-    ]
+    # Model preference — use the strongest available reasoning model for code patching
+    models = []
+    for m in [os.environ.get("GEMINI_MODEL", "gemini-3.1-pro-preview"), "gemini-3.1-pro-preview", "gemini-2.5-pro", "gemini-pro-latest"]:
+        if m and m not in models:
+            models.append(m)
 
     last_error = None
     for model_name in models:
         try:
-            print(f"[Forge AI] Calling Claude ({model_name})...")
-            response = client.messages.create(
-                model=model_name,
-                max_tokens=4096,
-                messages=[{"role": "user", "content": prompt}],
+            print(f"[Forge AI] Calling Gemini ({model_name})...")
+            model_instance = client.GenerativeModel(model_name=model_name)
+            response = model_instance.generate_content(
+                prompt,
+                generation_config={"max_output_tokens": 8192, "temperature": 0.2},
             )
-            raw = response.content[0].text
+            raw = response.text
             break
         except Exception as e:
             last_error = e
@@ -241,7 +233,7 @@ Begin."""
         # ALL models failed — exit loudly, no fallback
         print()
         print("=" * 60)
-        print("  FATAL: Claude API call FAILED")
+        print("  FATAL: Gemini API call FAILED")
         print("=" * 60)
         print(f"  Last error: {last_error}")
         print()
@@ -258,10 +250,10 @@ Begin."""
     else:
         # Model returned code without the separator — treat entire response as code
         patched_code = raw.strip()
-        explanation = "(Claude did not provide a separate explanation section.)"
+        explanation = "(Gemini did not provide a separate explanation section.)"
 
-    # Strip any markdown fences Claude may have wrapped around the code
-    patched_code = re.sub(r"^```python\s*\n?", "", patched_code)
+    # Strip any markdown fences Gemini may have wrapped around the code
+    patched_code = re.sub(r"^```(?:python)?\s*\n?", "", patched_code)
     patched_code = re.sub(r"\n?```\s*$", "", patched_code)
 
     # Ensure file ends with newline
@@ -337,11 +329,11 @@ def main():
         with open(ATTACK_LOG, "r") as f:
             all_entries = json.load(f)
         attack_samples = [e["payload"] for e in all_entries if e.get("success")][:5]
-    print(f"      {len(attack_samples)} successful payloads to share with Claude.")
+    print(f"      {len(attack_samples)} successful payloads to share with Gemini.")
 
-    # 4. Generate patch via Claude (NO FALLBACK — fails loudly)
-    print("\n[4/5] Generating patch via Claude...")
-    client = get_claude_client()
+    # 4. Generate patch via Gemini (NO FALLBACK — fails loudly)
+    print("\n[4/5] Generating patch via Gemini...")
+    client = get_gemini_client()
     patched_source, explanation = generate_patch(
         client, full_source, vuln_func, target_vuln, attack_samples
     )
