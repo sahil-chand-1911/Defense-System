@@ -2,7 +2,7 @@
 Guardian AI — Rule Learning Agent (Stage 3)
 
 Analyzes successful attack payloads from Red AI (or direct input),
-queries Google Gemini to generate a targeted regex/keyword detection rule that
+queries Groq to generate a targeted regex/keyword detection rule that
 blocks the attack without creating false positives on legitimate users,
 and appends the new rule to rules.json.
 """
@@ -115,16 +115,16 @@ def synthesize_rule_heuristics(payload: dict) -> dict:
         }
 
 
-def ask_gemini_for_rule(payload: dict) -> dict:
-    """Call Google Gemini to generate a high-quality WAF detection rule for the payload."""
-    api_key = os.environ.get("GEMINI_API_KEY")
+def ask_groq_for_rule(payload: dict) -> dict:
+    """Call Groq to generate a high-quality WAF detection rule for the payload."""
+    api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        print("[Learn Rule] No GEMINI_API_KEY found in .env — using intelligent synthesizer.")
+        print("[Learn Rule] No GROQ_API_KEY found in .env — using intelligent synthesizer.")
         return synthesize_rule_heuristics(payload)
 
-    import google.generativeai as genai
+    from groq import Groq
 
-    genai.configure(api_key=api_key)
+    client = Groq(api_key=api_key)
 
     prompt = f"""You are Guardian AI, an expert defensive Web Application Firewall (WAF) rule engineer.
 An attacker bypassed our firewall using this SQL injection payload targeting a Flask SQLite login endpoint:
@@ -146,38 +146,31 @@ Respond ONLY with a valid JSON object in this exact schema (no markdown formatti
   "description": "<One sentence explaining what this blocks and how it avoids false positives>"
 }}"""
 
-    # Try currently supported active models (fast model for rule generation)
-    models_to_try = []
-    for m in [os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"), "gemini-3.8-flash", "gemini-2.5-flash", "gemini-flash-latest"]:
-        if m and m not in models_to_try:
-            models_to_try.append(m)
+    model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
 
-    last_error = None
-    for model_name in models_to_try:
-        try:
-            print(f"[Learn Rule] Querying Gemini ({model_name})...")
-            model_instance = genai.GenerativeModel(
-                model_name=model_name,
-                system_instruction="You are Guardian AI, an expert defensive Web Application Firewall (WAF) rule engineer.",
-            )
-            response = model_instance.generate_content(
-                prompt,
-                generation_config={"max_output_tokens": 1024, "temperature": 0.2},
-            )
-            raw_text = response.text.strip()
-            # Clean markdown fences if any
-            clean_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
-            clean_text = re.sub(r"\s*```$", "", clean_text).strip()
-            rule_data = json.loads(clean_text)
-            print(f"[Learn Rule] Successfully generated rule via Gemini ({model_name}).")
-            return rule_data
-        except Exception as e:
-            last_error = e
-            continue
-
-    print(f"[Learn Rule] Notice: Gemini API returned ({last_error}).")
-    print("             Switching to intelligent rule synthesizer.")
-    return synthesize_rule_heuristics(payload)
+    try:
+        print(f"[Learn Rule] Querying Groq ({model})...")
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.2,
+            max_tokens=4096,
+        )
+        raw_text = response.choices[0].message.content.strip()
+        # Extract JSON object (robust against markdown fences or commentary)
+        clean_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
+        clean_text = re.sub(r"\s*```$", "", clean_text).strip()
+        match = re.search(r"\{.*\}", clean_text, re.DOTALL)
+        json_str = match.group(0) if match else clean_text
+        rule_data = json.loads(json_str)
+        print(f"[Learn Rule] ✅ Successfully generated rule via Groq ({model}).")
+        return rule_data
+    except Exception as e:
+        print(f"[Learn Rule] Notice: Groq API returned ({e}).")
+        print("             Switching to intelligent rule synthesizer.")
+        return synthesize_rule_heuristics(payload)
 
 
 def test_rule(rule: dict, payload: dict) -> bool:
@@ -246,9 +239,9 @@ def main():
     payload = load_target_payload(args.payload, args.log)
     print(f"[1/3] Analyzing attack payload: {payload}")
 
-    # 2. Generate rule via Gemini
+    # 2. Generate rule via Groq
     print("\n[2/3] Generating defensive detection pattern...")
-    rule = ask_gemini_for_rule(payload)
+    rule = ask_groq_for_rule(payload)
     print(f"      Rule ID     : {rule.get('id')}")
     print(f"      Rule Name   : {rule.get('name')}")
     print(f"      Pattern     : {rule.get('pattern')}")

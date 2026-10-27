@@ -33,9 +33,9 @@ The core architecture operates as an autonomous, self-healing lifecycle:
 
 | Agent | Role | Description |
 |---|---|---|
-| **Red AI** | Attacker | Autonomous adversarial agent powered by Google Gemini (default: `gemini-3.8-flash`, with built-in fallback) that generates varied exploit payloads targeting SQL Injection, XSS, and Path Traversal. |
-| **Guardian AI** | Defensive Proxy / WAF | High-performance reverse proxy sitting on port `8080`. Inspects all incoming traffic against dynamic rules (`rules.json`) and includes an AI learning pipeline (`learn_rule.py`) to synthesize new defense rules instantly. |
-| **Forge AI** | Code-Patching Agent | Secure code remediation engine. Isolates vulnerable functions in source code and leverages Google Gemini to write drop-in, parameterized security fixes while preserving business logic and comments. |
+| **Red AI** | Attacker | Autonomous adversarial agent powered by Groq (default: `openai/gpt-oss-20b`, with built-in fallback) that generates varied exploit payloads targeting SQL Injection, XSS, and Path Traversal. |
+| **Guardian AI** | Defensive Proxy / WAF | High-performance reverse proxy sitting on port `8080`. Inspects all incoming traffic against dynamic rules (`rules.json`) and includes an AI learning pipeline (`learn_rule.py`) to synthesize new defense rules instantly via Groq (`openai/gpt-oss-20b`). |
+| **Forge AI** | Code-Patching Agent | Secure code remediation engine. Isolates vulnerable functions in source code and leverages Groq's strongest reasoning model (`openai/gpt-oss-120b`) to write drop-in, parameterized security fixes while preserving business logic and comments. |
 | **Sentinel AI** | Patch Tester & Validator | Automated quality & security gate. Runs a two-phase check on proposed patches: replays historical breach payloads to confirm mitigation, and runs the `pytest` regression suite to guarantee zero broken functionality. |
 | **Memory AI** | Security Knowledge Base | *(Stage 6 — Upcoming)* Persistent vector and relational memory tracking past attack chains, defense effectiveness, and vulnerability trends over time. |
 
@@ -63,17 +63,17 @@ Defense-System/
 ├── red-ai/                   # Attacker agent
 │   ├── red_ai.py             # Payload generator and exploit execution engine
 │   ├── attack_log.json       # Structured log of all exploit attempts and breach statuses
-│   └── requirements.txt      # google-generativeai, requests, python-dotenv
+│   └── requirements.txt      # groq, requests, python-dotenv
 ├── guardian-ai/              # Defensive reverse proxy / WAF
 │   ├── guardian.py           # Proxy server running on port 8080 (forwards to 5001)
 │   ├── learn_rule.py         # AI-powered rule learning engine
 │   ├── rules.json            # Dynamic regex inspection rules
 │   ├── guardian_log.json     # Audit trail of blocked malicious traffic
-│   └── requirements.txt      # flask, requests, python-dotenv, google-generativeai
+│   └── requirements.txt      # flask, requests, python-dotenv, groq
 ├── forge-ai/                 # Code patching agent
 │   ├── forge_ai.py           # Reads app.py & attack logs to generate app_patched.py
 │   ├── patches/              # Timestamped patch diffs and audit explanations
-│   └── requirements.txt      # google-generativeai, python-dotenv
+│   └── requirements.txt      # groq, python-dotenv
 ├── sentinel-ai/              # Patch validation agent
 │   ├── sentinel_ai.py        # Automated security replay + pytest regression verifier
 │   └── requirements.txt      # requests, pytest, flask
@@ -93,8 +93,8 @@ Defense-System/
 Create a `.env` file in the project root:
 
 ```bash
-# Google Gemini API (Used across Red AI, Guardian AI, and Forge AI)
-GEMINI_API_KEY="your-gemini-api-key"
+# Groq API (Used across Red AI, Guardian AI, and Forge AI)
+GROQ_API_KEY="your-groq-api-key"
 ```
 
 ### 3. Dependency Installation
@@ -142,7 +142,7 @@ In a third terminal, launch the exploit suite through Guardian AI:
 ```bash
 python3 red-ai/red_ai.py --vuln sql_injection --target http://127.0.0.1:8080
 ```
-- Red AI prints a visible banner stating whether it is using **Gemini-generated payloads** (`gemini-3.8-flash`) or the **built-in fallback** list.
+- Red AI prints a visible banner stating whether it is using **Groq-generated payloads** (`openai/gpt-oss-20b`) or the **built-in fallback** list.
 - Previously known signatures are blocked (`403 Forbidden`).
 - Any novel bypass vectors succeed and get logged into `red-ai/attack_log.json`.
 

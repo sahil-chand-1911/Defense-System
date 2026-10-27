@@ -1,7 +1,7 @@
 """
 Red AI — Automated SQL Injection Attacker Agent (Stage 2)
 
-Uses Google's Gemini API to generate varied SQL injection payloads,
+Uses Groq's API to generate varied SQL injection payloads,
 fires them at the Stage 1 target app's /login endpoint (directly or through
 the Guardian AI proxy), and logs every result to a local JSON file.
 
@@ -30,20 +30,19 @@ LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "attack_log.
 # Load .env from the project root (one level up from red-ai/)
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env"))
 
-# Supported active Gemini models (fast model for payload generation)
-DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+# Supported active Groq models (fast model for payload generation)
+DEFAULT_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
 
 
 def get_llm_client():
-    """Initialise the Google Gemini API client."""
-    api_key = os.environ.get("GEMINI_API_KEY")
+    """Initialise the Groq API client."""
+    api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         return None
 
-    import google.generativeai as genai
+    from groq import Groq
 
-    genai.configure(api_key=api_key)
-    return genai
+    return Groq(api_key=api_key)
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +79,7 @@ Return ONLY a JSON array of these objects — no explanation, no markdown fences
 
 def generate_payloads(client, model: str) -> tuple[list[dict], str]:
     """
-    Ask Gemini for SQL injection payloads and parse the JSON response.
+    Ask Groq for SQL injection payloads and parse the JSON response.
     Returns (payloads, source_description).
     """
     fallback = [
@@ -95,48 +94,41 @@ def generate_payloads(client, model: str) -> tuple[list[dict], str]:
     ]
 
     if client is None:
-        print("[Red AI] ⚠️  WARNING: Using fallback payloads — Gemini call failed or unauthenticated (GEMINI_API_KEY missing)")
+        print("[Red AI] ⚠️  WARNING: Using fallback payloads — Groq call failed or unauthenticated (GROQ_API_KEY missing)")
         return fallback, "built-in fallback (unauthenticated)"
 
-    # Candidate active models in order of priority
-    candidate_models = [model]
-    for alt in ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-flash-latest"]:
-        if alt not in candidate_models:
-            candidate_models.append(alt)
+    try:
+        print(f"[Red AI] Requesting payloads from Groq ({model})...")
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": SQLI_SYSTEM_PROMPT},
+                {"role": "user", "content": "Generate the payloads now."},
+            ],
+            temperature=0.7,
+            max_tokens=4096,
+        )
+        raw = response.choices[0].message.content.strip()
 
-    last_error = None
-    for cand_model in candidate_models:
-        try:
-            print(f"[Red AI] Requesting payloads from Gemini ({cand_model})...")
-            model_instance = client.GenerativeModel(
-                model_name=cand_model,
-                system_instruction=SQLI_SYSTEM_PROMPT,
-            )
-            response = model_instance.generate_content(
-                "Generate the payloads now.",
-                generation_config={"max_output_tokens": 1024, "temperature": 0.7},
-            )
-            raw = response.text.strip()
+        # Strip markdown fences and extract JSON array
+        clean_text = re.sub(r"^```(?:json)?\s*", "", raw)
+        clean_text = re.sub(r"\s*```$", "", clean_text).strip()
+        match = re.search(r"\[.*\]", clean_text, re.DOTALL)
+        json_str = match.group(0) if match else clean_text
 
-            # Strip markdown fences if the model wraps the output
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
+        payloads = json.loads(json_str)
+        if not isinstance(payloads, list):
+            payloads = [payloads]
 
-            payloads = json.loads(raw)
-            if not isinstance(payloads, list):
-                payloads = [payloads]
+        print(f"[Red AI] ✅ Using Groq-generated payloads ({model})")
+        return payloads, f"Groq ({model})"
 
-            print(f"[Red AI] ✅ Using Gemini-generated payloads ({cand_model})")
-            return payloads, f"Gemini ({cand_model})"
+    except json.JSONDecodeError as e:
+        last_error = f"Non-JSON response from {model}: {e}"
+    except Exception as e:
+        last_error = f"{model} failed: {e}"
 
-        except json.JSONDecodeError as e:
-            last_error = f"Non-JSON response from {cand_model}: {e}"
-            break
-        except Exception as e:
-            last_error = f"{cand_model} failed: {e}"
-            continue
-
-    print(f"[Red AI] ⚠️  WARNING: Using fallback payloads — Gemini call failed or unauthenticated ({last_error})")
+    print(f"[Red AI] ⚠️  WARNING: Using fallback payloads — Groq call failed or unauthenticated ({last_error})")
     return fallback, f"built-in fallback (error: {last_error})"
 
 
@@ -207,7 +199,7 @@ def main():
     parser.add_argument(
         "--model",
         default=DEFAULT_MODEL,
-        help=f"Gemini model ID to use for payload generation (default: {DEFAULT_MODEL})",
+        help=f"Groq model ID to use for payload generation (default: {DEFAULT_MODEL})",
     )
     args = parser.parse_args()
 

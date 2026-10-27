@@ -2,10 +2,10 @@
 Forge AI — Automated Code-Patching Agent (Stage 4)
 
 Reads the vulnerable target-app/app.py, identifies exploited vulnerabilities
-from Red AI's attack_log.json, calls Google Gemini to generate a secure rewrite of
+from Red AI's attack_log.json, calls Groq to generate a secure rewrite of
 the affected function(s), and writes the proposed patch to app_patched.py.
 
-SAFETY: If the Gemini API call fails, the script reports the failure loudly
+SAFETY: If the Groq API call fails, the script reports the failure loudly
 and exits. It does NOT fall back to a hardcoded patch — real failures must
 be visible, never hidden.
 """
@@ -122,24 +122,23 @@ def extract_vulnerable_function(source: str, vuln_type: str) -> tuple[str, int, 
 
 
 # ---------------------------------------------------------------------------
-# Gemini API — patch generation (NO FALLBACK)
+# Groq API — patch generation (NO FALLBACK)
 # ---------------------------------------------------------------------------
-def get_gemini_client():
-    """Initialise the Google Gemini client. Fails loudly if key is missing."""
-    api_key = os.environ.get("GEMINI_API_KEY")
+def get_groq_client():
+    """Initialise the Groq client. Fails loudly if key is missing."""
+    api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         print("=" * 60)
-        print("  FATAL: GEMINI_API_KEY not set in .env")
+        print("  FATAL: GROQ_API_KEY not set in .env")
         print("=" * 60)
-        print("  Forge AI requires a working Gemini API key.")
-        print("  Add GEMINI_API_KEY to your .env file and try again.")
+        print("  Forge AI requires a working Groq API key.")
+        print("  Add GROQ_API_KEY to your .env file and try again.")
         print("=" * 60)
         sys.exit(1)
 
-    import google.generativeai as genai
+    from groq import Groq
 
-    genai.configure(api_key=api_key)
-    return genai
+    return Groq(api_key=api_key)
 
 
 def generate_patch(
@@ -150,7 +149,7 @@ def generate_patch(
     attack_samples: list[dict],
 ) -> tuple[str, str]:
     """
-    Call Gemini to generate a patched version of the full app source.
+    Call Groq to generate a patched version of the full app source.
 
     Returns (patched_full_source, explanation).
 
@@ -208,34 +207,27 @@ Example structure:
 
 Begin."""
 
-    # Model preference — use the strongest available reasoning model for code patching
-    models = []
-    for m in [os.environ.get("GEMINI_MODEL", "gemini-3.1-pro-preview"), "gemini-3.1-pro-preview", "gemini-2.5-pro", "gemini-pro-latest"]:
-        if m and m not in models:
-            models.append(m)
+    # Model preference — use the strongest available reasoning model on Groq for code patching
+    model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
 
-    last_error = None
-    for model_name in models:
-        try:
-            print(f"[Forge AI] Calling Gemini ({model_name})...")
-            model_instance = client.GenerativeModel(model_name=model_name)
-            response = model_instance.generate_content(
-                prompt,
-                generation_config={"max_output_tokens": 8192, "temperature": 0.2},
-            )
-            raw = response.text
-            break
-        except Exception as e:
-            last_error = e
-            print(f"[Forge AI] Model {model_name} failed: {e}")
-            continue
-    else:
-        # ALL models failed — exit loudly, no fallback
+    try:
+        print(f"[Forge AI] Calling Groq ({model})...")
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.2,
+            max_tokens=8192,
+        )
+        raw = response.choices[0].message.content
+    except Exception as e:
+        # ALL attempts failed — exit loudly, no fallback
         print()
         print("=" * 60)
-        print("  FATAL: Gemini API call FAILED")
+        print("  FATAL: Groq API call FAILED")
         print("=" * 60)
-        print(f"  Last error: {last_error}")
+        print(f"  Error: {e}")
         print()
         print("  Forge AI does NOT fall back to hardcoded patches.")
         print("  Fix the API issue and re-run.")
@@ -250,9 +242,9 @@ Begin."""
     else:
         # Model returned code without the separator — treat entire response as code
         patched_code = raw.strip()
-        explanation = "(Gemini did not provide a separate explanation section.)"
+        explanation = "(Groq did not provide a separate explanation section.)"
 
-    # Strip any markdown fences Gemini may have wrapped around the code
+    # Strip any markdown fences Groq may have wrapped around the code
     patched_code = re.sub(r"^```(?:python)?\s*\n?", "", patched_code)
     patched_code = re.sub(r"\n?```\s*$", "", patched_code)
 
@@ -329,11 +321,11 @@ def main():
         with open(ATTACK_LOG, "r") as f:
             all_entries = json.load(f)
         attack_samples = [e["payload"] for e in all_entries if e.get("success")][:5]
-    print(f"      {len(attack_samples)} successful payloads to share with Gemini.")
+    print(f"      {len(attack_samples)} successful payloads to share with Groq.")
 
-    # 4. Generate patch via Gemini (NO FALLBACK — fails loudly)
-    print("\n[4/5] Generating patch via Gemini...")
-    client = get_gemini_client()
+    # 4. Generate patch via Groq (NO FALLBACK — fails loudly)
+    print("\n[4/5] Generating patch via Groq...")
+    client = get_groq_client()
     patched_source, explanation = generate_patch(
         client, full_source, vuln_func, target_vuln, attack_samples
     )

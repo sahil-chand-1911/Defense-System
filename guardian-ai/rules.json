@@ -33,5 +33,19 @@
     "pattern": "'\\s*OR\\s*''\\s*=\\s*'",
     "type": "regex",
     "description": "Blocks SQL injection ' OR ''=' tautology condition"
+  },
+  {
+    "id": "rule_sqli_or_numeric_tautology_1793082700",
+    "name": "SQLi OR Numeric Tautology",
+    "pattern": "'\\s*OR\\s+\\d+\\s*=\\s*\\d+",
+    "type": "regex",
+    "description": "Blocks numeric tautologies like ' OR 1=1"
+  },
+  {
+    "id": "rule_sqli_username_or_comment",
+    "name": "SQLi Username OR Injection",
+    "pattern": "(?i)'\\s*or\\b[^']*(?:=\\s*[^']*)?(?:--|/\\\\*|#|;|\\s|$)",
+    "type": "regex",
+    "description": "Blocks usernames containing an OR clause followed by a condition or comment marker, catching typical SQL injection attempts while allowing normal credentials."
   }
 ]
