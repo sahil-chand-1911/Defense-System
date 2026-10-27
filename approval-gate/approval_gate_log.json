@@ -1,0 +1,56 @@
+[
+  {
+    "timestamp": "2026-10-27T07:31:02.181456+00:00",
+    "action": "APPROVE",
+    "mode": "SIMULATION",
+    "branch": "fix/sql-injection-20261027-073102",
+    "repo": "sahil-chand-1911/Defense-System",
+    "title": "Fix(security): Remediate Sql Injection in /login route via parameterization",
+    "pr_body": "## Automated Security Remediation\n\n### Vulnerability Summary\n- **Vulnerability Type**: sql_injection\n- **Target Endpoint**: `POST /login`\n- **Remediation Strategy**: Replace unsafe string concatenation with SQLite parameterized query placeholders (`?`).\n\n### Verification & Quality Gate (Sentinel AI)\n- **Phase 1 (Security Replay)**: \u2705 54/54 historical breach attacks neutralized (100% blocked).\n- **Phase 2 (Functionality)**: \u2705 5/5 regression unit tests passed.\n- **Human-in-the-Loop Review**: \u2705 Approved by security reviewer.\n\n### Associated Audit Artifacts\n- Patch Diff: `patch_sql_injection_20261027_063617.md`\n- Hardened File: `target-app/app_patched.py` -> `target-app/app.py`\n",
+    "status": "SIMULATED_APPROVED"
+  },
+  {
+    "timestamp": "2026-10-27T07:31:12.595798+00:00",
+    "action": "REJECT",
+    "patch_file": "/Users/sahilchand/Desktop/Defense System/target-app/app_patched.py",
+    "vulnerability_type": "sql_injection",
+    "reason": "Requesting additional docstrings and comments on parameterized query",
+    "status": "REJECTED_UNTOUCHED"
+  },
+  {
+    "timestamp": "2026-10-27T07:32:33.753905+00:00",
+    "action": "APPROVE",
+    "mode": "SIMULATION",
+    "branch": "fix/sql-injection-20261027-073233",
+    "repo": "sahil-chand-1911/Defense-System",
+    "title": "Fix(security): Remediate Sql Injection in /login route via parameterization",
+    "pr_body": "## Automated Security Remediation\n\n### Vulnerability Summary\n- **Vulnerability Type**: sql_injection\n- **Target Endpoint**: `POST /login`\n- **Remediation Strategy**: Replace unsafe string concatenation with SQLite parameterized query placeholders (`?`).\n\n### Verification & Quality Gate (Sentinel AI)\n- **Phase 1 (Security Replay)**: \u2705 54/54 historical breach attacks neutralized (100% blocked).\n- **Phase 2 (Functionality)**: \u2705 5/5 regression unit tests passed.\n- **Human-in-the-Loop Review**: \u2705 Approved by security reviewer.\n\n### Associated Audit Artifacts\n- Patch Diff: `patch_sql_injection_20261027_063617.md`\n- Hardened File: `target-app/app_patched.py` -> `target-app/app.py`\n",
+    "status": "SIMULATED_APPROVED"
+  },
+  {
+    "timestamp": "2026-10-27T07:33:15.074870+00:00",
+    "action": "REJECT",
+    "patch_file": "/Users/sahilchand/Desktop/Defense System/target-app/app_patched.py",
+    "vulnerability_type": "sql_injection",
+    "reason": "Patch is effective but requires inline comments explaining SQLite parameter syntax",
+    "status": "REJECTED_UNTOUCHED"
+  },
+  {
+    "timestamp": "2026-10-27T07:37:03.646905+00:00",
+    "action": "APPROVE",
+    "mode": "SIMULATION",
+    "branch": "fix/sql-injection-20261027-073703",
+    "repo": "sahil-chand-1911/Defense-System",
+    "title": "Fix(security): Remediate Sql Injection in /login route via parameterization",
+    "pr_body": "## Automated Security Remediation\n\n### Vulnerability Summary\n- **Vulnerability Type**: sql_injection\n- **Target Endpoint**: `POST /login`\n- **Remediation Strategy**: Replace unsafe string concatenation with SQLite parameterized query placeholders (`?`).\n\n### Verification & Quality Gate (Sentinel AI)\n- **Phase 1 (Security Replay)**: \u2705 54/54 historical breach attacks neutralized (100% blocked).\n- **Phase 2 (Functionality)**: \u2705 5/5 regression unit tests passed.\n- **Human-in-the-Loop Review**: \u2705 Approved by security reviewer.\n\n### Associated Audit Artifacts\n- Patch Diff: `patch_sql_injection_20261027_063617.md`\n- Hardened File: `target-app/app_patched.py` -> `target-app/app.py`\n",
+    "status": "SIMULATED_APPROVED"
+  },
+  {
+    "timestamp": "2026-10-27T07:37:20.747221+00:00",
+    "action": "REJECT",
+    "patch_file": "/Users/sahilchand/Desktop/Defense System/target-app/app_patched.py",
+    "vulnerability_type": "sql_injection",
+    "reason": "Requires senior security architect review on SQLite query parameters",
+    "status": "REJECTED_UNTOUCHED"
+  }
+]

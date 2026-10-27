@@ -81,6 +81,10 @@ Defense-System/
 │   ├── memory_ai.py          # State tracking, sync pipeline & defense metric engine
 │   ├── memory.json           # Deduplicated attacks, learned rules & validated patches
 │   └── requirements.txt      # python-dotenv
+├── approval-gate/            # Human-in-the-loop review & PR creation
+│   ├── approval_gate.py      # Verification, interactive terminal prompt & GitHub PR engine
+│   ├── approval_gate_log.json # Structured audit trail of human review decisions
+│   └── requirements.txt      # requests, python-dotenv
 ├── .env.example              # Sample environment template
 └── README.md                 # System documentation
 ```
@@ -99,6 +103,10 @@ Create a `.env` file in the project root:
 ```bash
 # Groq API (Used across Red AI, Guardian AI, and Forge AI)
 GROQ_API_KEY="your-groq-api-key"
+
+# Optional: GitHub Personal Access Token for Stage 7 Human Approval Gate (PR creation)
+# Needs 'repo' scope. If omitted, Stage 7 runs in simulation mode.
+GITHUB_TOKEN="your-github-token"
 ```
 
 ### 3. Dependency Installation
@@ -122,6 +130,9 @@ pip install -r sentinel-ai/requirements.txt
 
 # Memory AI
 pip install -r memory-ai/requirements.txt
+
+# Approval Gate
+pip install -r approval-gate/requirements.txt
 ```
 
 ---
@@ -181,6 +192,13 @@ python3 memory-ai/memory_ai.py
 ```
 *Memory AI ingests historical breach attempts, learned WAF rules, and validated patches into `memory.json`, then calculates live defense strength by checking every known attack against current firewall rules.*
 
+### Step 8: Human Approval Gate & Pull Request Creation
+Authorize or reject the validated candidate patch before it touches production:
+```bash
+python3 approval-gate/approval_gate.py
+```
+*Displays the unified code diff, verifies Sentinel's PASS score, and prompts for interactive review (`[A]pprove` / `[R]eject`). Upon approval, creates a feature branch and opens a GitHub Pull Request (or simulates it if `GITHUB_TOKEN` is unset). Rejections are recorded in `approval_gate_log.json` while production code remains untouched.*
+
 ---
 
 ## Current Status
@@ -193,3 +211,4 @@ python3 memory-ai/memory_ai.py
 | **Stage 4** | Forge AI | ✅ Complete | Automated code-patching agent generating drop-in security fixes via Groq (`openai/gpt-oss-120b`). |
 | **Stage 5** | Sentinel AI | ✅ Complete | Automated two-phase validation engine (security replay + pytest functionality). |
 | **Stage 6** | Memory AI | ✅ Complete | Persistent security knowledge store, telemetry tracking, and live defense strength scoring. |
+| **Stage 7** | Approval Gate | ✅ Complete | Human-in-the-loop review boundary, audit logging, and automated GitHub PR creation. |
