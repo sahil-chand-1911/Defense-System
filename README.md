@@ -39,6 +39,8 @@ The core architecture operates as an autonomous, self-healing lifecycle:
 | **Sentinel AI** | Patch Tester & Validator | Automated quality & security gate. Runs a two-phase check on proposed patches: replays historical breach payloads to confirm mitigation, and runs the `pytest` regression suite to guarantee zero broken functionality. |
 | **Memory AI** | Persistent Knowledge Layer | Persistent security telemetry and state store tracking deduplicated attack payloads, learned WAF rules, validated code patches, and live defense strength scoring. |
 
+*Note: Stage 7 (Human Approval Gate) is a human-facing control checkpoint rather than an autonomous AI agent — not a 6th agent, but the safety gate that sits after them.*
+
 ---
 
 ## What Makes This System Different
@@ -183,7 +185,7 @@ Run the automated security and regression suite:
 ```bash
 python3 sentinel-ai/sentinel_ai.py --patched target-app/app_patched.py --port 5002
 ```
-*Sentinel spins up the candidate on port `5002`, replays all 20+ attacks to verify they are blocked, runs all 5 `pytest` test cases, and outputs the final PASS/FAIL verdict for human review.*
+*Sentinel spins up the candidate on port `5002`, replays all 55 attacks to verify they are blocked, runs all 5 `pytest` test cases, and outputs the final PASS/FAIL verdict for human review.*
 
 ### Step 7: Inspect System Memory & Defense Strength with Memory AI
 Synchronize persistent telemetry and view the real-time defense strength score:
