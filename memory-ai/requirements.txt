@@ -1,0 +1,2 @@
+# Memory AI — Persistent Knowledge Store & Telemetry Layer
+python-dotenv>=1.0.0

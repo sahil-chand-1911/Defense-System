@@ -37,7 +37,7 @@ The core architecture operates as an autonomous, self-healing lifecycle:
 | **Guardian AI** | Defensive Proxy / WAF | High-performance reverse proxy sitting on port `8080`. Inspects all incoming traffic against dynamic rules (`rules.json`) and includes an AI learning pipeline (`learn_rule.py`) to synthesize new defense rules instantly via Groq (`openai/gpt-oss-20b`). |
 | **Forge AI** | Code-Patching Agent | Secure code remediation engine. Isolates vulnerable functions in source code and leverages Groq's strongest reasoning model (`openai/gpt-oss-120b`) to write drop-in, parameterized security fixes while preserving business logic and comments. |
 | **Sentinel AI** | Patch Tester & Validator | Automated quality & security gate. Runs a two-phase check on proposed patches: replays historical breach payloads to confirm mitigation, and runs the `pytest` regression suite to guarantee zero broken functionality. |
-| **Memory AI** | Security Knowledge Base | *(Stage 6 — Upcoming)* Persistent vector and relational memory tracking past attack chains, defense effectiveness, and vulnerability trends over time. |
+| **Memory AI** | Persistent Knowledge Layer | Persistent security telemetry and state store tracking deduplicated attack payloads, learned WAF rules, validated code patches, and live defense strength scoring. |
 
 ---
 
@@ -77,6 +77,10 @@ Defense-System/
 ├── sentinel-ai/              # Patch validation agent
 │   ├── sentinel_ai.py        # Automated security replay + pytest regression verifier
 │   └── requirements.txt      # requests, pytest, flask
+├── memory-ai/                # Persistent knowledge & telemetry store
+│   ├── memory_ai.py          # State tracking, sync pipeline & defense metric engine
+│   ├── memory.json           # Deduplicated attacks, learned rules & validated patches
+│   └── requirements.txt      # python-dotenv
 ├── .env.example              # Sample environment template
 └── README.md                 # System documentation
 ```
@@ -115,6 +119,9 @@ pip install -r forge-ai/requirements.txt
 
 # Sentinel AI
 pip install -r sentinel-ai/requirements.txt
+
+# Memory AI
+pip install -r memory-ai/requirements.txt
 ```
 
 ---
@@ -167,6 +174,13 @@ python3 sentinel-ai/sentinel_ai.py --patched target-app/app_patched.py --port 50
 ```
 *Sentinel spins up the candidate on port `5002`, replays all 20+ attacks to verify they are blocked, runs all 5 `pytest` test cases, and outputs the final PASS/FAIL verdict for human review.*
 
+### Step 7: Inspect System Memory & Defense Strength with Memory AI
+Synchronize persistent telemetry and view the real-time defense strength score:
+```bash
+python3 memory-ai/memory_ai.py
+```
+*Memory AI ingests historical breach attempts, learned WAF rules, and validated patches into `memory.json`, then calculates live defense strength by checking every known attack against current firewall rules.*
+
 ---
 
 ## Current Status
@@ -176,6 +190,6 @@ python3 sentinel-ai/sentinel_ai.py --patched target-app/app_patched.py --port 50
 | **Stage 1** | Target App | ✅ Complete | Vulnerable Flask app with 3 deliberate attack vectors and pytest suite. |
 | **Stage 2** | Red AI | ✅ Complete | Attacker agent with LLM integration and comprehensive exploit logging. |
 | **Stage 3** | Guardian AI | ✅ Complete | Dynamic WAF reverse proxy with live regex rule synthesis (`learn_rule.py`). |
-| **Stage 4** | Forge AI | 🟡 Code Complete | Full patch generator and diff reporter built; live LLM execution pending workspace config. |
+| **Stage 4** | Forge AI | ✅ Complete | Automated code-patching agent generating drop-in security fixes via Groq (`openai/gpt-oss-120b`). |
 | **Stage 5** | Sentinel AI | ✅ Complete | Automated two-phase validation engine (security replay + pytest functionality). |
-| **Stage 6** | Memory AI | ⏳ Not Started | Long-term attack graph and defense telemetry store. |
+| **Stage 6** | Memory AI | ✅ Complete | Persistent security knowledge store, telemetry tracking, and live defense strength scoring. |

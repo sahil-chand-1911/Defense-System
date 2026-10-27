@@ -1,0 +1,379 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "created_at": "2026-10-27T06:59:25.770984+00:00",
+    "last_synced": "2026-10-27T07:04:46.004797+00:00",
+    "sync_count": 5
+  },
+  "attacks": [
+    {
+      "id": "atk_001",
+      "signature": "{\"password\": \"x\", \"username\": \"' OR '1'='1' --\"}",
+      "payload": {
+        "username": "' OR '1'='1' --",
+        "password": "x"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-19T23:10:17.313077+00:00",
+      "last_seen": "2026-10-27T06:26:12.780577+00:00",
+      "total_occurrences": 4,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_or_1_equals_1"
+    },
+    {
+      "id": "atk_002",
+      "signature": "{\"password\": \"x\", \"username\": \"admin' --\"}",
+      "payload": {
+        "username": "admin' --",
+        "password": "x"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-19T23:10:17.542549+00:00",
+      "last_seen": "2026-10-27T06:26:12.991860+00:00",
+      "total_occurrences": 7,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": false,
+      "blocking_rule_id": null
+    },
+    {
+      "id": "atk_003",
+      "signature": "{\"password\": \"x\", \"username\": \"' OR 1=1 --\"}",
+      "payload": {
+        "username": "' OR 1=1 --",
+        "password": "x"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-19T23:10:17.751724+00:00",
+      "last_seen": "2026-10-27T06:26:13.198820+00:00",
+      "total_occurrences": 7,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_or_numeric_tautology_1793082700"
+    },
+    {
+      "id": "atk_004",
+      "signature": "{\"password\": \"' OR '1'='1\", \"username\": \"admin\"}",
+      "payload": {
+        "username": "admin",
+        "password": "' OR '1'='1"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-19T23:10:17.963923+00:00",
+      "last_seen": "2026-10-27T06:26:13.409721+00:00",
+      "total_occurrences": 4,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_or_1_equals_1"
+    },
+    {
+      "id": "atk_005",
+      "signature": "{\"password\": \"x\", \"username\": \"' UNION SELECT 1,2,3,4 --\"}",
+      "payload": {
+        "username": "' UNION SELECT 1,2,3,4 --",
+        "password": "x"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-19T23:10:18.173954+00:00",
+      "last_seen": "2026-10-27T06:26:13.616955+00:00",
+      "total_occurrences": 4,
+      "sample_response": "<p>Welcome, 2! Role: 4</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_union_select"
+    },
+    {
+      "id": "atk_006",
+      "signature": "{\"password\": \"' OR ''='\", \"username\": \"' OR ''='\"}",
+      "payload": {
+        "username": "' OR ''='",
+        "password": "' OR ''='"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-19T23:10:18.382119+00:00",
+      "last_seen": "2026-10-27T06:26:13.827860+00:00",
+      "total_occurrences": 5,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_empty_string_or_1792452977"
+    },
+    {
+      "id": "atk_007",
+      "signature": "{\"password\": \"*/--\", \"username\": \"admin'/*\"}",
+      "payload": {
+        "username": "admin'/*",
+        "password": "*/--"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-19T23:10:18.589113+00:00",
+      "last_seen": "2026-10-27T06:26:14.036577+00:00",
+      "total_occurrences": 7,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": false,
+      "blocking_rule_id": null
+    },
+    {
+      "id": "atk_008",
+      "signature": "{\"password\": \"x\", \"username\": \"' OR username='admin' --\"}",
+      "payload": {
+        "username": "' OR username='admin' --",
+        "password": "x"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-19T23:10:18.797595+00:00",
+      "last_seen": "2026-10-27T06:26:14.245437+00:00",
+      "total_occurrences": 6,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_username_or_comment"
+    },
+    {
+      "id": "atk_009",
+      "signature": "{\"password\": \"irrelevant\", \"username\": \"' OR 1=1 --\"}",
+      "payload": {
+        "username": "' OR 1=1 --",
+        "password": "irrelevant"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-27T06:31:24.824457+00:00",
+      "last_seen": "2026-10-27T06:31:24.824457+00:00",
+      "total_occurrences": 1,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_or_numeric_tautology_1793082700"
+    },
+    {
+      "id": "atk_010",
+      "signature": "{\"password\": \"irrelevant\", \"username\": \"' OR 1=1 /*\"}",
+      "payload": {
+        "username": "' OR 1=1 /*",
+        "password": "irrelevant"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-27T06:31:25.247979+00:00",
+      "last_seen": "2026-10-27T06:31:25.247979+00:00",
+      "total_occurrences": 1,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_or_numeric_tautology_1793082700"
+    },
+    {
+      "id": "atk_011",
+      "signature": "{\"password\": \"irrelevant\", \"username\": \"' OR EXISTS(SELECT 1 FROM users) --\"}",
+      "payload": {
+        "username": "' OR EXISTS(SELECT 1 FROM users) --",
+        "password": "irrelevant"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-27T06:31:25.679679+00:00",
+      "last_seen": "2026-10-27T06:31:25.679679+00:00",
+      "total_occurrences": 1,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_username_or_comment"
+    },
+    {
+      "id": "atk_012",
+      "signature": "{\"password\": \"irrelevant\", \"username\": \"admin' --\"}",
+      "payload": {
+        "username": "admin' --",
+        "password": "irrelevant"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-27T06:31:25.883522+00:00",
+      "last_seen": "2026-10-27T06:31:25.883522+00:00",
+      "total_occurrences": 1,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": false,
+      "blocking_rule_id": null
+    },
+    {
+      "id": "atk_013",
+      "signature": "{\"password\": \"irrelevant\", \"username\": \"' OR 1=1 LIMIT 1; --\"}",
+      "payload": {
+        "username": "' OR 1=1 LIMIT 1; --",
+        "password": "irrelevant"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-27T06:31:26.301529+00:00",
+      "last_seen": "2026-10-27T06:31:26.301529+00:00",
+      "total_occurrences": 1,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_or_numeric_tautology_1793082700"
+    },
+    {
+      "id": "atk_014",
+      "signature": "{\"password\": \"dummy\", \"username\": \"' OR 1=1 --\"}",
+      "payload": {
+        "username": "' OR 1=1 -- ",
+        "password": "dummy"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-27T06:32:37.718094+00:00",
+      "last_seen": "2026-10-27T06:32:37.718094+00:00",
+      "total_occurrences": 1,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_or_numeric_tautology_1793082700"
+    },
+    {
+      "id": "atk_015",
+      "signature": "{\"password\": \"' OR 1=1 --\", \"username\": \"admin\"}",
+      "payload": {
+        "username": "admin",
+        "password": "' OR 1=1 -- "
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-27T06:32:37.933527+00:00",
+      "last_seen": "2026-10-27T06:32:37.933527+00:00",
+      "total_occurrences": 1,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_or_numeric_tautology_1793082700"
+    },
+    {
+      "id": "atk_016",
+      "signature": "{\"password\": \"dummy\", \"username\": \"' OR '1'='1' --\"}",
+      "payload": {
+        "username": "' OR '1'='1' -- ",
+        "password": "dummy"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-27T06:32:38.355930+00:00",
+      "last_seen": "2026-10-27T06:32:38.355930+00:00",
+      "total_occurrences": 1,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_or_1_equals_1"
+    },
+    {
+      "id": "atk_017",
+      "signature": "{\"password\": \"dummy\", \"username\": \"' OR 1=1 LIMIT 1; --\"}",
+      "payload": {
+        "username": "' OR 1=1 LIMIT 1; -- ",
+        "password": "dummy"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-27T06:32:38.778116+00:00",
+      "last_seen": "2026-10-27T06:32:38.778116+00:00",
+      "total_occurrences": 1,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_or_numeric_tautology_1793082700"
+    },
+    {
+      "id": "atk_018",
+      "signature": "{\"password\": \"dummy\", \"username\": \"' OR EXISTS(SELECT 1 FROM users WHERE username=\\\"admin\\\") --\"}",
+      "payload": {
+        "username": "' OR EXISTS(SELECT 1 FROM users WHERE username=\"admin\") -- ",
+        "password": "dummy"
+      },
+      "vulnerability_type": "sql_injection",
+      "first_seen": "2026-10-27T06:32:38.985900+00:00",
+      "last_seen": "2026-10-27T06:32:38.985900+00:00",
+      "total_occurrences": 1,
+      "sample_response": "<p>Welcome, admin! Role: admin</p>",
+      "currently_blocked_by_waf": true,
+      "blocking_rule_id": "rule_sqli_username_or_comment"
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule_sqli_or_1_equals_1",
+      "name": "Classic OR '1'='1 Injection",
+      "pattern": "'\\s*OR\\s*'1'\\s*=\\s*'1",
+      "type": "regex",
+      "description": "Matches exact ' OR '1'='1 tautology pattern",
+      "category": "base_rule",
+      "added_at": "2026-10-27T06:34:48.280516+00:00",
+      "trigger_payload": "' OR '1'='1' --",
+      "is_active": true
+    },
+    {
+      "id": "rule_sqli_union_select",
+      "name": "UNION SELECT Statement",
+      "pattern": "UNION\\s+SELECT",
+      "type": "regex",
+      "description": "Matches SQL UNION SELECT data extraction statements",
+      "category": "base_rule",
+      "added_at": "2026-10-27T06:34:48.280516+00:00",
+      "trigger_payload": "' UNION SELECT 1,2,3,4 --",
+      "is_active": true
+    },
+    {
+      "id": "rule_sqli_semicolon_comment",
+      "name": "Semicolon Comment Sequence",
+      "pattern": ";--",
+      "type": "regex",
+      "description": "Matches query termination with comment delimiter ;--",
+      "category": "base_rule",
+      "added_at": "2026-10-27T06:34:48.280516+00:00",
+      "trigger_payload": null,
+      "is_active": true
+    },
+    {
+      "id": "rule_sqli_drop_table",
+      "name": "DROP TABLE Statement",
+      "pattern": "DROP\\s+TABLE",
+      "type": "regex",
+      "description": "Matches destructive DROP TABLE SQL commands",
+      "category": "base_rule",
+      "added_at": "2026-10-27T06:34:48.280516+00:00",
+      "trigger_payload": null,
+      "is_active": true
+    },
+    {
+      "id": "rule_sqli_empty_string_or_1792452977",
+      "name": "SQLi OR Empty String Comparison",
+      "pattern": "'\\s*OR\\s*''\\s*=\\s*'",
+      "type": "regex",
+      "description": "Blocks SQL injection ' OR ''=' tautology condition",
+      "category": "learned_rule",
+      "added_at": "2026-10-19T23:36:17+00:00",
+      "trigger_payload": "' OR ''='",
+      "is_active": true
+    },
+    {
+      "id": "rule_sqli_or_numeric_tautology_1793082700",
+      "name": "SQLi OR Numeric Tautology",
+      "pattern": "'\\s*OR\\s+\\d+\\s*=\\s*\\d+",
+      "type": "regex",
+      "description": "Blocks numeric tautologies like ' OR 1=1",
+      "category": "learned_rule",
+      "added_at": "2026-10-27T06:31:40+00:00",
+      "trigger_payload": "' OR 1=1 --",
+      "is_active": true
+    },
+    {
+      "id": "rule_sqli_username_or_comment",
+      "name": "SQLi Username OR Injection",
+      "pattern": "(?i)'\\s*or\\b[^']*(?:=\\s*[^']*)?(?:--|/\\\\*|#|;|\\s|$)",
+      "type": "regex",
+      "description": "Blocks usernames containing an OR clause followed by a condition or comment marker, catching typical SQL injection attempts while allowing normal credentials.",
+      "category": "learned_rule",
+      "added_at": "2026-10-27T06:34:48.280516+00:00",
+      "trigger_payload": "' OR '1'='1' --",
+      "is_active": true
+    }
+  ],
+  "patches": [
+    {
+      "patch_id": "patch_sql_injection_20261027_063617",
+      "filename": "patch_sql_injection_20261027_063617.md",
+      "vulnerability_type": "sql_injection",
+      "generated_at": "2026-10-27T06:36:17.291358+00:00",
+      "validated_by_sentinel": true,
+      "validation_status": "PASS",
+      "validation_summary": "54/54 attacks blocked (100%), 5/5 pytest functionality tests passed",
+      "validated_at": "2026-10-27T06:36:17.291358+00:00"
+    }
+  ],
+  "metrics_history": [],
+  "latest_metrics": {
+    "calculated_at": "2026-10-27T07:04:46.006654+00:00",
+    "waf_defense_strength_pct": 83.3,
+    "blocked_count": 15,
+    "bypassed_count": 3,
+    "total_unique": 18
+  }
+}
