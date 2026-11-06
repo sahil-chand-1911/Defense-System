@@ -5,3 +5,5 @@ attack_log.json
 guardian_log.json
 target-app/app_patched.py
 forge-ai/patches/
+.venv/
+venv/

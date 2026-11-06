@@ -87,6 +87,7 @@ Defense-System/
 │   ├── approval_gate.py      # Verification, interactive terminal prompt & GitHub PR engine
 │   ├── approval_gate_log.json # Structured audit trail of human review decisions
 │   └── requirements.txt      # requests, python-dotenv
+├── requirements.txt          # Unified project dependencies
 ├── .env.example              # Sample environment template
 └── README.md                 # System documentation
 ```
@@ -96,14 +97,28 @@ Defense-System/
 ## Setup Instructions
 
 ### 1. Prerequisites
-- Python 3.10+
+- Python 3.12 recommended (the system supports Python 3.10+ and has been verified on 3.12, but not on 3.14)
 - `pip` package manager
 
-### 2. Environment Configuration
-Create a `.env` file in the project root:
+### 2. Virtual Environment Setup (macOS)
+Create and activate an isolated virtual environment:
 
 ```bash
-# Groq API (Used across Red AI, Guardian AI, and Forge AI)
+python3.12 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Environment Configuration
+Copy the sample environment file to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and fill in your `GROQ_API_KEY` (`GITHUB_TOKEN` is optional):
+
+```bash
+# Groq API (Required across Red AI, Guardian AI, and Forge AI)
 GROQ_API_KEY="your-groq-api-key"
 
 # Optional: GitHub Personal Access Token for Stage 7 Human Approval Gate (PR creation)
@@ -111,30 +126,18 @@ GROQ_API_KEY="your-groq-api-key"
 GITHUB_TOKEN="your-github-token"
 ```
 
-### 3. Dependency Installation
-Install dependencies across all modules:
+### 4. Dependency Installation
+Install all dependencies using the unified requirements file:
 
 ```bash
-# Target App
-pip install -r target-app/requirements.txt
+pip install -r requirements.txt
+```
 
-# Red AI
-pip install -r red-ai/requirements.txt
+### 5. Verify Setup
+Run the regression suite to confirm the setup works:
 
-# Guardian AI
-pip install -r guardian-ai/requirements.txt
-
-# Forge AI
-pip install -r forge-ai/requirements.txt
-
-# Sentinel AI
-pip install -r sentinel-ai/requirements.txt
-
-# Memory AI
-pip install -r memory-ai/requirements.txt
-
-# Approval Gate
-pip install -r approval-gate/requirements.txt
+```bash
+python -m pytest target-app/tests/
 ```
 
 ---
