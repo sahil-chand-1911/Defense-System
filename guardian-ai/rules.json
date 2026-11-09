@@ -47,5 +47,12 @@
     "pattern": "(?i)'\\s*or\\b[^']*(?:=\\s*[^']*)?(?:--|/\\\\*|#|;|\\s|$)",
     "type": "regex",
     "description": "Blocks usernames containing an OR clause followed by a condition or comment marker, catching typical SQL injection attempts while allowing normal credentials."
+  },
+  {
+    "id": "rule_sqli_admin_dash_comment_1794232084",
+    "name": "SQLi Auth Bypass via Trailing Comment",
+    "pattern": "['\\\"]\\s*--",
+    "type": "regex",
+    "description": "Blocks quote followed by SQL line comment delimiter --"
   }
 ]

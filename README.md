@@ -87,6 +87,7 @@ Defense-System/
 │   ├── approval_gate.py      # Verification, interactive terminal prompt & GitHub PR engine
 │   ├── approval_gate_log.json # Structured audit trail of human review decisions
 │   └── requirements.txt      # requests, python-dotenv
+├── run_loop.py               # One-command full defense loop orchestrator
 ├── requirements.txt          # Unified project dependencies
 ├── .env.example              # Sample environment template
 └── README.md                 # System documentation
@@ -142,7 +143,23 @@ python -m pytest target-app/tests/
 
 ---
 
-## Running the Full Demo
+## Run the Full Loop
+
+Run the autonomous closed-loop defense lifecycle end-to-end with a single command:
+
+```bash
+# Run full loop with interactive human approval gate (Stage 7)
+python run_loop.py
+
+# Run loop up to validation and telemetry, stopping before approval gate
+python run_loop.py --no-approval
+```
+
+The orchestrator runs pre-flight checks, boots the target application and defensive proxy in the background, triggers Red AI, derives WAF rules for any breached payloads, writes a hardened patch with Forge AI, tests via Sentinel AI, syncs telemetry with Memory AI, and terminates all background processes cleanly upon exit.
+
+---
+
+## Running the Full Demo (Manual Steps)
 
 To experience the evolution cycle end-to-end, run each component in separate terminals:
 
